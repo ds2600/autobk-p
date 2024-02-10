@@ -79,11 +79,11 @@ try:
 				if (oDevice.sState == 'Auto'):
 					# Auto
 					tExpires = tNow + timedelta(days=iIniExpireDays * oDevice.iAutoWeeks)
-					oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, tExpires, sBkFile, oDevice.sComment))
+					oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, tExpires, sBkPath, oDevice.sComment))
 					oLog.info(sAt, 'expires', tExpires)
 				else:
 					# Manual
-					oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, None, sBkFile, None))
+					oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, None, sBkPath, None))
 
 				# Update Schedule
 				oCursor.execute(sSqlSetDone, (oDevice.kSchedule,))

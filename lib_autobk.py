@@ -53,14 +53,14 @@ def LoadConfig(sMod, *, sIniFile='./autobk.ini', bRotate=False):
 # Returns the next iWeekday@iHour from tFrom
 def NextWeekday(tFrom, iWeekday, iHour, iWeeks=1):
 	if iWeeks <= 0:
-		tNextDay = tFrom + datetime.timedelta(days=1)
+		tNextDay = tFrom + timedelta(days=1)
 		return tNextDay.replace(hour=iHour, minute=0, second=0, microsecond=0)
 	else:
 		iOffset = (iWeekday - tFrom.isoweekday()) % 7
 		if iOffset > 0:
 			iWeeks -= 1
 		iOffset += iWeeks * 7
-		tNext = tFrom + datetime.timedelta(days=iOffset)
+		tNext = tFrom + timedelta(days=iOffset)
 		return tNext.replace(hour=iHour, minute=0, second=0, microsecond=0)
 
 ###############################
