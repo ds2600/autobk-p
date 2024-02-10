@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.8
+#!/usr/local/bin/python3
 import sys as mSys
 from datetime import timedelta, datetime, date, time, timezone
 from mysql.connector import MySQLConnection

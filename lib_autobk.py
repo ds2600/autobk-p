@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.8
+#!/usr/local/bin/python3
 import logging as mLog
 from logging import Formatter, FileHandler
 from logging.handlers import RotatingFileHandler
@@ -61,7 +61,7 @@ def NextWeekday(tFrom, iWeekday, iHour, iWeeks=1):
 # Executes a script in a new process and waits for completion
 def CallScript(sName, sScript, *, lsArg=None, iTimeout=60, bOutIsErr=True):
 	# Prepare arguments for process call
-	lsParam = ['python3.8', sScript]
+	lsParam = ['python3', sScript]
 	if (lsArg is not None): lsParam += lsArg
 
 	# Execute script

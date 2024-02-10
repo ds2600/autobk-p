@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.8
+#!/usr/local/bin/python3
 import sys as mSys
 import xml.etree.ElementTree as mXml
 from datetime import timedelta, datetime, date, time, timezone

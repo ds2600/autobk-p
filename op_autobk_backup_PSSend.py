@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.8
+#!/usr/local/bin/python3
 import sys as mSys
 import json
 from datetime import datetime
