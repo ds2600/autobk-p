@@ -79,6 +79,7 @@ try:
 
 			# Update DB
 			if (sError is None):
+				bDuplicateHash = False
 				sDatabaseComment = ''
 				# Get hash of previous backup file
 				oDeviceCursor = oCnx.cursor(named_tuple=True, buffered=True)
@@ -94,24 +95,34 @@ try:
 						sDatabaseComment = 'Duplicate'
 						oLog.info(sAt, 'backup', 'duplicate')
 						mOS.remove(sBkPath)
+						bDuplicateHash = True
 					else:
-						# New Version
-						oDeviceCursor.execute(sSqlGetLatestVers, (oDevice.kSelf,))
-						iVersion = oDeviceCursor.fetchone().VersionNumber + 1
-						oLog.info(sAt, 'backup', 'new version')
-						# Complete
-						if (oDevice.sState == 'Auto'):
-							# Auto
-							tExpires = tNow + timedelta(days=iIniExpireDays * (1 if oDevice.iAutoWeeks == 0 else oDevice.iAutoWeeks))
-							oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, tExpires, sBkPath, oDevice.sComment, sNewHash))
-							oLog.info(sAt, 'expires', tExpires)
-						else:
-							# Manual
-							oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, None, sBkPath, None))
-						# Add Version
-						oDeviceCursor.execute(sSqlAddVersion, (oCursor.lastrowid, oDevice.kSelf, iVersion, 'New Version'))
-				oDeviceCursor.close()
-				# Update Schedule
+						bDuplicateHash = False
+				if (bDuplicateHash == False):
+					# Complete, schedule next backup if this one was automatic
+					if (oDevice.sState == 'Auto'):
+						# Auto
+						tExpires = tNow + timedelta(days=iIniExpireDays * (1 if oDevice.iAutoWeeks == 0 else oDevice.iAutoWeeks))
+						oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, tExpires, sBkPath, sDatabaseComment, sNewHash))
+						oLog.info(sAt, 'expires', tExpires)
+					else:
+						# Manual
+						oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, None, sBkPath, None, sNewHash))
+					oLog.info(sAt, 'new-hash', sNewHash)
+					# New Version
+					oDeviceCursor.execute(sSqlGetLatestVers, (oDevice.kSelf,))
+					oRow = oDeviceCursor.fetchone()
+					if oRow is not None and oRow.VersionNumber is not None:
+						iVersion = oRow.VersionNumber + 1
+					else:
+						iVersion = 1  
+					# Add Version
+					oLog.info(sAt, 'new-version', iVersion)
+					oDeviceCursor.execute(sSqlAddVersion, (oCursor.lastrowid, oDevice.kSelf, iVersion, 'New Version'))
+					oDeviceCursor.close()
+					sDatabaseComment = 'v{}'.format(iVersion)
+					oLog.info(sAt, 'backup', 'new backup')
+				# Update Schedule with complete
 				oCursor.execute(sSqlSetDone, (sDatabaseComment, oDevice.kSchedule,))
 				oLog.info(sAt, 'backup', 'complete')
 			elif (iAttempt < iIniRetryCount):
