@@ -13,6 +13,7 @@ SELECT bk.kSelf, bk.kDevice, bk.sFile, dev.sName
  LEFT JOIN Device dev ON bk.kDevice=dev.kSelf
  WHERE bk.tExpires<=%s"""
 sSqlDelBackup	= "DELETE FROM Backup WHERE kSelf=%s"
+sSqlDelVersion	= "DELETE FROM BackupVersion WHERE kBackup=%s"
 
 ###############################
 try:
@@ -46,6 +47,7 @@ try:
 			if (mOS.path.isfile(sBkPath)): mOS.remove(sBkPath)
 
 			# Remove DB entry
+			oCursor.execute(sSqlDelVersion, (oBk.kSelf,))
 			oCursor.execute(sSqlDelBackup, (oBk.kSelf,))
 			oLog.info(sAt, 'purge', 'complete')
 		except Exception as oErr:

@@ -5,6 +5,7 @@ from logging.handlers import RotatingFileHandler
 from configparser import RawConfigParser
 from subprocess import Popen, PIPE
 from datetime import timedelta, datetime, time
+import hashlib as mHash
 
 ## Exceptions
 class AutoBkError(Exception): pass
@@ -102,3 +103,12 @@ def HttpRequest(oHttpCnx, sURL, dnHdrs, *, bPost=False, bData=True, sMsg=None, s
 		return HttpRequest(oHttpCnx, sFallbackURL, dnHdrs, bPost=bPost, bData=bData, sMsg=sMsg)
 	else:
 		raise AutoBkError('Bad HTTP Response: {}'.format(oResponse.status))
+	
+###############################
+# Calculate MD5 Hash of a file
+def FileHash(sFile):
+	oHash = mHash.md5()
+	with open(sFile, 'rb') as oF:
+		for sData in iter(lambda: oF.read(4096), b''):
+			oHash.update(sData)
+	return oHash.hexdigest()

@@ -24,7 +24,7 @@ try:
 	# Request config update and download
 
 	oFile = open(sBkTarget, 'w')
-	oFile.write(sDateTime)
+	oFile.write('Test backup file\n')
 	oFile.close()
 
 	# Cleanup, logoff, and disconnect HTTP session

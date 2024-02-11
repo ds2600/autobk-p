@@ -19,10 +19,14 @@ SELECT dev.kSelf, dev.sName, dev.sIP, dev.sType, dev.iAutoWeeks, s.kSelf kSchedu
  FROM Schedule s
  LEFT JOIN Device dev ON s.kDevice=dev.kSelf
  WHERE s.sState IN ('Auto','Manual') AND s.tTime<=%s"""
-sSqlSetDone		= "UPDATE Schedule SET sState='Complete' WHERE kSelf=%s"
+sSqlGetLatestHash = "SELECT backupHash FROM Backup WHERE kDevice=%s ORDER BY tComplete DESC LIMIT 1"
+sSqlGetLatestVers = "SELECT MAX(versionNumber) AS VersionNumber FROM BackupVersion WHERE kDevice=%s"
+sSqlSetDone		= "UPDATE Schedule SET sState='Complete', sComment=%s WHERE kSelf=%s"
 sSqlSetFail		= "UPDATE Schedule SET sState='Fail', iAttempt=%s, sComment=%s WHERE kSelf=%s"
 sSqlSetRetry	= "UPDATE Schedule SET tTime=%s, iAttempt=%s WHERE kSelf=%s"
-sSqlAddBackup	= "INSERT INTO Backup SET kDevice=%s, tComplete=%s, tExpires=%s, sFile=%s, sComment=%s"
+sSqlAddBackup	= "INSERT INTO Backup SET kDevice=%s, tComplete=%s, tExpires=%s, sFile=%s, sComment=%s, backupHash=%s"
+sSqlAddVersion = "INSERT INTO BackupVersion SET kBackup=%s, kDevice=%s, versionNumber=%s, sComment=%s"
+
 
 ###############################
 try:
@@ -75,18 +79,40 @@ try:
 
 			# Update DB
 			if (sError is None):
-				# Complete
-				if (oDevice.sState == 'Auto'):
-					# Auto
-					tExpires = tNow + timedelta(days=iIniExpireDays * oDevice.iAutoWeeks)
-					oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, tExpires, sBkPath, oDevice.sComment))
-					oLog.info(sAt, 'expires', tExpires)
-				else:
-					# Manual
-					oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, None, sBkPath, None))
+				sDatabaseComment = ''
+				# Get hash of previous backup file
+				oDeviceCursor = oCnx.cursor(named_tuple=True, buffered=True)
+				oDeviceCursor.execute(sSqlGetLatestHash, (oDevice.kSelf,))
 
+				# Calculate hashes of new backup and compare to previous
+				sNewHash = FileHash(sBkPath)
+				if (oDeviceCursor.rowcount > 0):
+					# Compare hash to previous backup
+					oRow = oDeviceCursor.fetchone()
+					if (oRow.backupHash == sNewHash):
+						# Duplicate
+						sDatabaseComment = 'Duplicate'
+						oLog.info(sAt, 'backup', 'duplicate')
+						mOS.remove(sBkPath)
+					else:
+						# New Version
+						oDeviceCursor.execute(sSqlGetLatestVers, (oDevice.kSelf,))
+						iVersion = oDeviceCursor.fetchone().VersionNumber + 1
+						oLog.info(sAt, 'backup', 'new version')
+						# Complete
+						if (oDevice.sState == 'Auto'):
+							# Auto
+							tExpires = tNow + timedelta(days=iIniExpireDays * (1 if oDevice.iAutoWeeks == 0 else oDevice.iAutoWeeks))
+							oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, tExpires, sBkPath, oDevice.sComment, sNewHash))
+							oLog.info(sAt, 'expires', tExpires)
+						else:
+							# Manual
+							oCursor.execute(sSqlAddBackup, (oDevice.kSelf, tNow, None, sBkPath, None))
+						# Add Version
+						oDeviceCursor.execute(sSqlAddVersion, (oCursor.lastrowid, oDevice.kSelf, iVersion, 'New Version'))
+				oDeviceCursor.close()
 				# Update Schedule
-				oCursor.execute(sSqlSetDone, (oDevice.kSchedule,))
+				oCursor.execute(sSqlSetDone, (sDatabaseComment, oDevice.kSchedule,))
 				oLog.info(sAt, 'backup', 'complete')
 			elif (iAttempt < iIniRetryCount):
 				# Retry
